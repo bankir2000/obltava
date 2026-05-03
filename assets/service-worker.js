@@ -1,13 +1,13 @@
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open('ppo-cache').then((cache) => {
+        caches.open('obltava-cache').then((cache) => {
             return cache.addAll([
                 '/',
-                '/ppo/',
-                '/ppo/index.html',
-                '/ppo/assets/index.9d19f81e.js',
-                '/ppo/assets/index.7c801b86.css',
-                '/ppo/assets/favicon.4ad42837.ico'
+                '/obltava/',
+                '/obltava/index.html',
+                '/obltava/assets/index.9d19f81e.js',
+                '/obltava/assets/index.7c801b86.css',
+                '/obltava/assets/favicon.4ad42837.ico'
             ]);
         })
     );
