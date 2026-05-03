@@ -3832,6 +3832,9 @@ const Lc = Io(Tc, [["render", Fc]])
                 lat: null,
                 lng: null,
                 nearestCity: null,
+                oblast: null,
+                selectedWeapons: [],
+                weaponToAdd: "",
                 targetNearestCity: null,
                 time: null,
                 disclosure: null,
@@ -3858,7 +3861,9 @@ const Lc = Io(Tc, [["render", Fc]])
             watchId: null,
             targets: ["БпЛА типу Гербера", "Гелікоптер.", "БпЛА типу Зала", "Зонд", "БпЛА типу Молнія", "Квадрокоптер.", "БпЛА типу Невизначений", "Крилата Ракета.", "БпЛА типу Орлан", "Літак Великий.", "БпЛА типу реактивний Шахед", "Літак Малий.", "БпЛА типу Суперкам", "Постріли.", "БпЛА типу ШАХЕД", "Робота суміжних підрозділів", "Вибух.", "Спалах в небі", "Вибух на землі", "FPV-дрон", "Виходи."],
             disclosure: ["\u0412\u0438\u044f\u0432\u043b\u0435\u043D\u043E \u0430\u043A\u0443\u0441\u0442\u0438\u0447\u043D\u043E.", "\u0412\u0438\u044F\u0432\u043B\u0435\u043D\u043E \u0430\u043A\u0443\u0441\u0442\u0438\u0447\u043D\u043E \u0442\u0430 \u0432\u0456\u0437\u0443\u0430\u043B\u044C\u043D\u043E.", "\u0412\u0438\u044F\u0432\u043B\u0435\u043D\u043E \u0432\u0456\u0437\u0443\u0430\u043B\u044C\u043D\u043E.", "Візуально і акустично \u043D\u0435 \u0432\u0438\u044F\u0432\u043B\u0435\u043D\u043E."],
-            target_action: [" знищено", " уражено", " не знищено"],
+            target_action: ["не застосовувалась", "знищено", "не знищено"],
+            oblasts: ["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ"],
+            weaponsList: ["із ЗКУ Viktor MR-2 14,5", "зі стрілецької зброї 5.45/5.56"],
             targets_bpla: [" \u0442\u0438\u043f\u0443 \u0417\u0430\u043b\u0430.", " \u0442\u0438\u043f\u0443 \u0421\u0443\u043f\u0435\u0440\u043a\u0430\u043c.", " \u0442\u0438\u043f\u0443 \u0428\u0430\u0445\u0435\u0434.", " \u0442\u0438\u043f\u0443 \u041e\u0440\u043b\u0430\u043d.", " \u0442\u0438\u043f\u0443 \u041b\u0430\u043d\u0446\u0435\u0442.", " \u0442\u0438\u043f \u043d\u0435\u0432\u0438\u0437\u043d\u0430\u0447\u0435\u043d\u043e."],
             tcil: null,
             ammunition_consumption: null,
@@ -3882,98 +3887,88 @@ const Lc = Io(Tc, [["render", Fc]])
         dataForClipboard() {
             return {
                 title: "\u041F\u043E\u0432\u0456\u0434\u043E\u043C\u043B\u0435\u043D\u043D\u044F \u043F\u0440\u043E \u0432\u0438\u044F\u0432\u043B\u0435\u043D\u043D\u044F \u0446\u0456\u043B\u0456",
-                text:
-  (this.form.time ? ("" + this.form.time).replace(":", ".") + " " : "") +
-  (this.form.sign ? ` ${this.form.sign}` : "") +
-  (this.form.nearestCity ? ` р-н н.п. ${this.form.nearestCity}` : "") +
-  (this.form.target ? ` ${this.form.target}` : "") +
-  (this.form.target_side ? ` ${this.form.target_side}` + " " : ``) +
-  (this.form.target_description ? ` ${this.form.target_description}` + " " : "") +
-  (this.form.tcil ? " № " + this.form.tcil + ". " : "") +
-  (this.form.disclosure ? " " + this.form.disclosure + " " : "") +
-  (this.form.number_of_targets ? ` Кількість: ${this.form.number_of_targets}од. ` : "") +
-  (() => {
-    let coords = [];
-    if (this.form.azimuth) coords.push(`А-${this.form.azimuth}°`);
-    if (this.form.direction) coords.push(`К-${this.form.direction}°`);
-    if (this.form.height) coords.push(`Н-${this.form.height}м.`);
-    if (this.form.distance) coords.push(`Д-${this.form.distance}м.`);
-    return coords.length ? ` (${coords.join(" ")})` : "";
-  })() +
-  (this.form.target_action ? " Ціль обстріляно, " + this.form.target_action + ". " : "") +
-  (() => {
-    let total = 0;
-    let bzt = 0;
-    let mdz = 0;
-    let b32 = 0;
+                text: [
+    this.form.date ?  `Дата: ${this.form.date}` : "",
+    this.form.time ?  `Час: ${this.form.time} || `,
+    `№ цілі: ${this.form.tcil} || "б/н"`,
+                `Результат: ${this.form.target_action || "не застосовувались"}`,
+    this.form.nearestCity ? `Н.П. ${this.form.nearestCity}` : "",
+    this.form.oblast ? `Обл.: ${this.form.oblast}` : "",
+    `Підрозділ: 13 озкб`,
+    this.form.sign ? `Позивний: ${this.form.sign}` : "",
+    this.form.selectedWeapons && this.form.selectedWeapons.length ? `Зброя: ${this.form.selectedWeapons.join(", ")}` : "",
+    `Висота: ${this.form.height || 0}`,
+    `Опис: А-${this.form.azimuth || 0}, К-${this.form.direction || 0}, Д-${this.form.distance || 0}`,
+                this.form.target ? this.form.target : "",
+    this.form.target_side ? this.form.target_side : "",
+    this.form.target_description ? this.form.target_description : "",
+    this.form.disclosure ? this.form.disclosure : "",
+    this.form.number_of_targets ? `Кількість: ${this.form.number_of_targets}од.` : "",
+    (() => {
+      let total = 0;
+      let bzt = 0;
+      let mdz = 0;
+      let b32 = 0;
 
-    if (this.form.ammunition_consumption) {
-      const amt = Number(this.form.ammunition_consumption);
-      total += amt;
-      const bzt1 = Math.round(amt / 4);
-      const mdz1 = amt - bzt1;
-      bzt += bzt1;
-      mdz += mdz1;
-    }
+      if (this.form.ammunition_consumption) {
+        const amt = Number(this.form.ammunition_consumption);
+        total += amt;
+        const bzt1 = Math.round(amt / 4);
+        const mdz1 = amt - bzt1;
+        bzt += bzt1;
+        mdz += mdz1;
+      }
 
-    if (this.form.dva_ammunition_consumption) {
-      const amt = Number(this.form.dva_ammunition_consumption);
-      total += amt;
-      const bzt2 = Math.round(amt / 3);
-      const mdz2 = amt - bzt2;
-      bzt += bzt2;
-      mdz += mdz2;
-    }
+      if (this.form.dva_ammunition_consumption) {
+        const amt = Number(this.form.dva_ammunition_consumption);
+        total += amt;
+        const bzt2 = Math.round(amt / 3);
+        const mdz2 = amt - bzt2;
+        bzt += bzt2;
+        mdz += mdz2;
+      }
+
       if (this.form.tre_ammunition_consumption) {
-  const amt = Number(this.form.tre_ammunition_consumption);
-  total += amt;
+        const amt = Number(this.form.tre_ammunition_consumption);
+        total += amt;
+        const fullCycles = Math.floor(amt / 4);
+        const remainder = amt % 4;
+        let bzt3 = fullCycles;
+        let b32_3 = fullCycles;
+        let mdz3 = fullCycles * 2;
+        if (remainder >= 1) bzt3 += 1;
+        if (remainder >= 2) b32_3 += 1;
+        if (remainder === 3) mdz3 += 1;
+        bzt += bzt3;
+        b32 += b32_3;
+        mdz += mdz3;
+      }
 
-  const fullCycles = Math.floor(amt / 4);
-  const remainder = amt % 4;
-
-  let bzt3 = fullCycles;
-  let b32_3 = fullCycles;
-  let mdz3 = fullCycles * 2;
-
-  if (remainder >= 1) bzt3 += 1;
-  if (remainder >= 2) b32_3 += 1;
-  if (remainder === 3) mdz3 += 1;
-
-  bzt += bzt3;
-  b32 += b32_3;
-  mdz += mdz3;
-}
-
-    return total > 0
-      ? ` Витрати БК ЗУ MR2 VIKTOR 14,5мм=${total}шт. (в т.ч. БЗТ-${bzt}шт., МДЗ-${mdz}шт., Б32-${b32}шт.). `
-      : "";
-  })() +
-  (this.form.ak_ammunition_consumption
-    ? "Витрати БК АК74-5.45mm=" +
-      this.form.ak_ammunition_consumption +
-      "шт (в т.ч. ТЗ-" +
-      Math.round(this.form.ak_ammunition_consumption / 3) +
-      "шт., ПС-" +
-      (this.form.ak_ammunition_consumption -
-        Math.round(this.form.ak_ammunition_consumption / 3)) +
-      "шт.)."
-    : "") +
-  (this.form.dshk_ammunition_consumption
-    ? " Витрати БК ДШК-12.7mm=" + this.form.dshk_ammunition_consumption + "шт. "
-    : "") +
-  (this.form.browning_ammunition_consumption
-    ? " Витрати БК Browning M2-12.7mm=" + this.form.browning_ammunition_consumption + "шт. "
-    : "") +
-  (this.form.pkm_ammunition_consumption
-    ? " Витрати БК ПКМ-7.62mm=" + this.form.pkm_ammunition_consumption + "шт. "
-    : "") +
-  (this.form.m75_ammunition_consumption
-    ? " Витрати M75-20.0mm=" + this.form.m75_ammunition_consumption + "шт. "
-    : "") + 
-  (this.form.other_weapon && this.form.other_weapon_ammo
-    ? " Витрати БК " + this.form.other_weapon + "=" + this.form.other_weapon_ammo + "шт. "
-    : "") +
-  (this.form.description ? " " + this.form.description : "") + (this.form.target_action && this.form.na_bch ? " На БЧ: " + this.form.na_bch : "")
+      return total > 0
+        ? `із ЗКУ Viktor MR-2 14,5 ${total}шт. (в т.ч. БЗТ-${bzt}шт., МДЗ-${mdz}шт., Б32-${b32}шт.).`
+        : "";
+    })(),
+    this.form.ak_ammunition_consumption
+      ? `Витрати БК АК74-5.45mm=${this.form.ak_ammunition_consumption}шт (в т.ч. ТЗ-${Math.round(this.form.ak_ammunition_consumption / 3)}шт., ПС-${this.form.ak_ammunition_consumption - Math.round(this.form.ak_ammunition_consumption / 3)}шт.).`
+      : "",
+    this.form.dshk_ammunition_consumption
+      ? `Витрати БК ДШК-12.7mm=${this.form.dshk_ammunition_consumption}шт.`
+      : "",
+    this.form.browning_ammunition_consumption
+      ? `Витрати БК Browning M2-12.7mm=${this.form.browning_ammunition_consumption}шт.`
+      : "",
+    this.form.pkm_ammunition_consumption
+      ? `Витрати БК ПКМ-7.62mm=${this.form.pkm_ammunition_consumption}шт.`
+      : "",
+    this.form.m75_ammunition_consumption
+      ? `Витрати M75-20.0mm=${this.form.m75_ammunition_consumption}шт.`
+      : "",
+    this.form.other_weapon && this.form.other_weapon_ammo
+      ? `Витрати БК ${this.form.other_weapon}=${this.form.other_weapon_ammo}шт.`
+      : "",
+    this.form.description ? this.form.description : "",
+    this.form.target_action && this.form.na_bch ? `На БЧ: ${this.form.na_bch}` : "",
+  ].filter(Boolean).join("\n")
             }
         },
         signErrorMessage() {
@@ -4051,7 +4046,9 @@ const Lc = Io(Tc, [["render", Fc]])
       month: "2-digit",
       year: "numeric"
     });
-    this.form.time = `${date} ${time}`;
+    this.form.date = `${date}`;
+    this.form.time = `${time}`;
+
 },
         getCoordinates() {
             navigator.geolocation ? navigator.geolocation.getCurrentPosition(e=>{
@@ -4081,10 +4078,23 @@ const Lc = Io(Tc, [["render", Fc]])
         loadInputFromLocalStorage() {
             this.form.sign = localStorage.getItem("Sign") || null,
             this.form.nearestCity = localStorage.getItem("nearestCity") || null,
+            this.form.oblast = localStorage.getItem("oblast") || null,
             this.form.lat = localStorage.getItem("lat") || null,
             this.form.lng = localStorage.getItem("lng") || null,
             this.form.other_weapon = localStorage.getItem("other_weapon") || null,
-            this.form.na_bch = localStorage.getItem("na_bch") || null
+            this.form.na_bch = localStorage.getItem("na_bch") || null,
+            this.form.selectedWeapons = JSON.parse(localStorage.getItem("selectedWeapons") || "[]")
+        },
+        addWeapon(val) {
+            const w = val || this.form.weaponToAdd;
+            if (w && !this.form.selectedWeapons.includes(w)) {
+                this.form.selectedWeapons = [...this.form.selectedWeapons, w];
+                localStorage.setItem("selectedWeapons", JSON.stringify(this.form.selectedWeapons));
+            }
+        },
+        removeWeapon(idx) {
+            this.form.selectedWeapons = this.form.selectedWeapons.filter((_, i) => i !== idx);
+            localStorage.setItem("selectedWeapons", JSON.stringify(this.form.selectedWeapons));
         },
         roundNearest5(e) {
             return Math.round(e / 5) * 5
@@ -4123,6 +4133,9 @@ const Lc = Io(Tc, [["render", Fc]])
     watch: {
         "form.sign": function(e) {
             localStorage.setItem("Sign", e)
+        },
+        "form.oblast": function(e) {
+            localStorage.setItem("oblast", e || "")
         },
         "form.nearestCity": function(e) {
             localStorage.setItem("nearestCity", e)
@@ -4435,10 +4448,44 @@ function bu(e, t, n, s, r, o) {
     }, " \u041E\u0442\u0440\u0438\u043C\u0430\u0442\u0438 \u043D\u0430\u0441\u0435\u043B\u0435\u043D\u0438\u0439 \u043F\u0443\u043D\u043A\u0442 ")]), F(c, {
         id: "nearestCity",
         modelValue: r.form.nearestCity,
-        "onUpdate:modelValue": t[15] || (t[15] = d=>r.form.nearestCity = d),
+        "onUpdate:modelValue": t[15] || (t[15] = d=>r.form.nearestCity = (d || "").toUpperCase()),
         type: "text",
         class: "mt-1 block w-full"
-    }, null, 8, ["modelValue"])]), B("div", iu, [B("div", lu, [F(l, {
+    }, null, 8, ["modelValue"]),
+    F(l, { for: "oblast", value: "\u041e\u0431\u043b\u0430\u0441\u0442\u044c:" }),
+    F("select", {
+        id: "oblast",
+        class: "mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm text-lg",
+        value: r.form.oblast || "",
+        onInput: e => { r.form.oblast = e.target.value; }
+    }, [
+        F("option", { value: "" }, "\u2014 \u043e\u0431\u0435\u0440\u0456\u0442\u044c \u043e\u0431\u043b\u0430\u0441\u0442\u044c \u2014"),
+        F("option", { value: "\u0412\u0456\u043d\u043d\u0438\u0446\u044c\u043a\u0430" }, "\u0412\u0456\u043d\u043d\u0438\u0446\u044c\u043a\u0430"),
+        F("option", { value: "\u0412\u043e\u043b\u0438\u043d\u0441\u044c\u043a\u0430" }, "\u0412\u043e\u043b\u0438\u043d\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0414\u043d\u0456\u043f\u0440\u043e\u043f\u0435\u0442\u0440\u043e\u0432\u0441\u044c\u043a\u0430" }, "\u0414\u043d\u0456\u043f\u0440\u043e\u043f\u0435\u0442\u0440\u043e\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0414\u043e\u043d\u0435\u0446\u044c\u043a\u0430" }, "\u0414\u043e\u043d\u0435\u0446\u044c\u043a\u0430"),
+        F("option", { value: "\u0416\u0438\u0442\u043e\u043c\u0438\u0440\u0441\u044c\u043a\u0430" }, "\u0416\u0438\u0442\u043e\u043c\u0438\u0440\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0417\u0430\u043a\u0430\u0440\u043f\u0430\u0442\u0441\u044c\u043a\u0430" }, "\u0417\u0430\u043a\u0430\u0440\u043f\u0430\u0442\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0417\u0430\u043f\u043e\u0440\u0456\u0437\u044c\u043a\u0430" }, "\u0417\u0430\u043f\u043e\u0440\u0456\u0437\u044c\u043a\u0430"),
+        F("option", { value: "\u0406\u0432\u0430\u043d\u043e-\u0424\u0440\u0430\u043d\u043a\u0456\u0432\u0441\u044c\u043a\u0430" }, "\u0406\u0432\u0430\u043d\u043e-\u0424\u0440\u0430\u043d\u043a\u0456\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041a\u0438\u0457\u0432\u0441\u044c\u043a\u0430" }, "\u041a\u0438\u0457\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041a\u0456\u0440\u043e\u0432\u043e\u0433\u0440\u0430\u0434\u0441\u044c\u043a\u0430" }, "\u041a\u0456\u0440\u043e\u0432\u043e\u0433\u0440\u0430\u0434\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041b\u0443\u0433\u0430\u043d\u0441\u044c\u043a\u0430" }, "\u041b\u0443\u0433\u0430\u043d\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041b\u044c\u0432\u0456\u0432\u0441\u044c\u043a\u0430" }, "\u041b\u044c\u0432\u0456\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041c\u0438\u043a\u043e\u043b\u0430\u0457\u0432\u0441\u044c\u043a\u0430" }, "\u041c\u0438\u043a\u043e\u043b\u0430\u0457\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041e\u0434\u0435\u0441\u044c\u043a\u0430" }, "\u041e\u0434\u0435\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u041f\u043e\u043b\u0442\u0430\u0432\u0441\u044c\u043a\u0430" }, "\u041f\u043e\u043b\u0442\u0430\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0420\u0456\u0432\u043d\u0435\u043d\u0441\u044c\u043a\u0430" }, "\u0420\u0456\u0432\u043d\u0435\u043d\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0421\u0443\u043c\u0441\u044c\u043a\u0430" }, "\u0421\u0443\u043c\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0422\u0435\u0440\u043d\u043e\u043f\u0456\u043b\u044c\u0441\u044c\u043a\u0430" }, "\u0422\u0435\u0440\u043d\u043e\u043f\u0456\u043b\u044c\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0425\u0430\u0440\u043a\u0456\u0432\u0441\u044c\u043a\u0430" }, "\u0425\u0430\u0440\u043a\u0456\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0425\u0435\u0440\u0441\u043e\u043d\u0441\u044c\u043a\u0430" }, "\u0425\u0435\u0440\u0441\u043e\u043d\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0425\u043c\u0435\u043b\u044c\u043d\u0438\u0446\u044c\u043a\u0430" }, "\u0425\u043c\u0435\u043b\u044c\u043d\u0438\u0446\u044c\u043a\u0430"),
+        F("option", { value: "\u0427\u0435\u0440\u043a\u0430\u0441\u044c\u043a\u0430" }, "\u0427\u0435\u0440\u043a\u0430\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u0427\u0435\u0440\u043d\u0456\u0432\u0435\u0446\u044c\u043a\u0430" }, "\u0427\u0435\u0440\u043d\u0456\u0432\u0435\u0446\u044c\u043a\u0430"),
+        F("option", { value: "\u0427\u0435\u0440\u043d\u0456\u0433\u0456\u0432\u0441\u044c\u043a\u0430" }, "\u0427\u0435\u0440\u043d\u0456\u0433\u0456\u0432\u0441\u044c\u043a\u0430"),
+        F("option", { value: "\u043c. \u041a\u0438\u0457\u0432" }, "\u043c. \u041a\u0438\u0457\u0432")
+    ])]), B("div", iu, [B("div", lu, [F(l, {
         for: "time",
         value: "\u0427\u0430\u0441 \u0432\u0438\u044F\u0432\u043B\u0435\u043D\u043D\u044F \u0446\u0456\u043B\u0456:"
     }), B("div", cu, [B("button", {
@@ -4466,7 +4513,40 @@ function bu(e, t, n, s, r, o) {
         "onUpdate:checked": t[19] || (t[19] = _=>r.form.disclosure = _),
         name: "disclosure",
         value: d
-    }, null, 8, ["checked", "value"]), B("span", au, We(d), 1)]))), 128))])]), B("div", du, [F(l, {
+    }, null, 8, ["checked", "value"]), B("span", au, We(d), 1)]))), 128))])]),
+    B("div", { class: "pb-4" }, [
+        F(l, { for: "weapons_select", value: "\u0417\u0431\u0440\u043e\u044f:" }),
+        B("div", { class: "flex gap-2 mt-1" }, [
+            F("select", {
+                id: "weapons_select",
+                class: "block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm text-lg"
+            }, [
+                F("option", { value: "" }, "\u2014 \u043e\u0431\u0435\u0440\u0456\u0442\u044c \u0437\u0431\u0440\u043e\u044e \u2014"),
+                F("option", { value: "\u0456\u0437 \u0417\u041a\u0423 Viktor MR-2 14,5" }, "\u0456\u0437 \u0417\u041a\u0423 Viktor MR-2 14,5"),
+                F("option", { value: "\u0437\u0456 \u0441\u0442\u0440\u0456\u043b\u0435\u0446\u044c\u043a\u043e\u0457 \u0437\u0431\u0440\u043e\u0457 5.45/5.56" }, "\u0437\u0456 \u0441\u0442\u0440\u0456\u043b\u0435\u0446\u044c\u043a\u043e\u0457 \u0437\u0431\u0440\u043e\u0457 5.45/5.56")
+            ]),
+            B("button", {
+                class: "bg-sky-500 rounded text-white px-3 text-sm whitespace-nowrap",
+                onClick: t[36] || (t[36] = () => {
+                    const sel = document.getElementById("weapons_select");
+                    if (sel && sel.value) o.addWeapon(sel.value);
+                })
+            }, "+ \u0414\u043e\u0434\u0430\u0442\u0438")
+        ]),
+        r.form.selectedWeapons && r.form.selectedWeapons.length ? (Y(!0), G(de, null, cn(r.form.selectedWeapons, (w, i) => (Y(),
+            G("span", {
+                key: i,
+                class: "bg-gray-200 dark:bg-gray-700 rounded px-2 py-1 text-sm inline-flex items-center gap-1 mr-1 mt-1"
+            }, [
+                We(w + " "),
+                B("button", {
+                    class: "text-red-500 font-bold",
+                    onClick: () => o.removeWeapon(i)
+                }, "\u2715")
+            ])
+        )), 128)) : bt("", !0)
+    ]),
+    B("div", du, [F(l, {
         for: "target_action",
         value: "\u041F\u043E\u0432\u0456\u0442\u0440\u044F\u043D\u043E\u0433\u043E \u041F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A\u0430 🎯:"
     }), B("div", hu, [(Y(!0),
@@ -6092,6 +6172,8 @@ const Is = yc(vu);
 Is.use(Ec());
 Is.use(Pf);
 Is.mount("#app");
+
+
 
 
 
