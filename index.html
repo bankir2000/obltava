@@ -77,6 +77,30 @@ small.l{display:block;color:var(--mut);font-size:11px;font-weight:400}
 .warn{background:var(--warn);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px}
 details{margin-top:12px}summary{cursor:pointer;color:var(--mut);padding:8px 0}
 pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:8px;border-radius:8px;font-size:13px;margin:6px 0}
+
+td.name,.un{cursor:pointer}
+td.name .nm-t{border-bottom:1px dotted var(--mut)}
+td.name:hover .nm-t{color:var(--ac)}
+td.name:focus-visible,.un:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+.un{display:flex;justify-content:space-between;align-items:center}
+.un:after{content:"›";font-size:24px;line-height:1;color:var(--mut)}
+@keyframes flash{0%,60%{box-shadow:inset 0 0 0 3px var(--ac);}100%{box-shadow:inset 0 0 0 3px transparent}}
+tr.flash td,.uc.flash{animation:flash 1.8s ease-out}
+tr.flash td{background:var(--ac2)!important}
+html.lock{overflow:hidden}
+#ov{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain}
+#ov[hidden]{display:none}
+.ovh{display:flex;align-items:center;gap:8px;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));background:var(--card);border-bottom:1px solid var(--bd)}
+.ovh .t{flex:1;min-width:0}
+.ovh .t b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovh .t span{font-size:13px;color:var(--mut)}
+#ovbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px max(12px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));max-width:900px;width:100%;margin:0 auto}
+.msg{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.msg .mh{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--mut);margin-bottom:4px}
+.msg .mh b{color:var(--tx);font-size:15px}
+.msg pre{background:transparent;padding:0;margin:0;font:inherit;font-size:16px;line-height:1.45}
+.msg.last{border-color:var(--ac)}
+.sec{font-size:13px;font-weight:700;color:var(--mut);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
 @media(max-width:760px){
   .scroll{display:none}.cards{display:flex}
   .acts button{flex:1 1 45%}
@@ -115,7 +139,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:8px;
     <button id="csv">💾 CSV</button>
     <button id="print">🖨 Друк</button>
   </div>
-  <div class="scroll">
+  <div class="scroll" id="scrollbox">
   <table id="tbl">
     <thead>
       <tr><th rowspan="2" class="nm">Назва МВГ</th><th colspan="3" class="g1">Паливо</th><th colspan="3" class="g2">БК основної зброї</th><th colspan="3" class="g3">БК стрілкової зброї</th></tr>
@@ -131,6 +155,15 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:8px;
   <div class="mut" style="margin-top:10px">«-» — у повідомленні цих даних немає. Якщо МВГ надіслало кілька звітів за день, береться останнє значення кожного показника. Основна зброя: 12.7, 14.5, 30 мм (Praga), ЗУ-23; стрілкова: 5.45, 7.62. Загальний «розхід БК» без калібру відноситься до основної зброї.</div>
   <details><summary>Які повідомлення використано (для перевірки)</summary><div id="used"></div></details>
 </div>
+</div>
+<div id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovt">
+  <div class="ovh">
+    <button id="ovback" class="pri">← Назад</button>
+    <div class="t"><b id="ovt"></b><span id="ovsub"></span></div>
+    <button id="ovprev" class="sq" aria-label="Попередній МВГ">‹</button>
+    <button id="ovnext" class="sq" aria-label="Наступний МВГ">›</button>
+  </div>
+  <div id="ovbody"></div>
 </div>
 <script>
 /* ===== ПАРСЕР ===== */
@@ -235,7 +268,8 @@ function buildTable(msgs,date){
     used.push({time:m.time,sender:m.sender,name:r.name,body:m.body});
     const k=unitKey(r.name);
     let u=map.get(k);
-    if(!u){u={name:r.name,fuelRest:null,fuelType:null,fuelIn:null,fuelOut:null,main:{},small:{},mainIn:null,mainOut:null,smallIn:null,smallOut:null,count:0};map.set(k,u);}
+    if(!u){u={name:r.name,fuelRest:null,fuelType:null,fuelIn:null,fuelOut:null,main:{},small:{},mainIn:null,mainOut:null,smallIn:null,smallOut:null,count:0,msgs:[]};map.set(k,u);}
+    u.msgs.push({time:m.time,sender:m.sender,body:m.body});
     u.count++; u.name=r.name.length>=u.name.length?r.name:u.name;
     for(const f of ['fuelRest','fuelType','fuelIn','fuelOut','mainIn','mainOut','smallIn','smallOut']) if(r[f]!=null) u[f]=r[f];
     Object.assign(u.main,r.main); Object.assign(u.small,r.small);
@@ -355,7 +389,7 @@ $('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadF
 $('dsel').onchange=()=>{$('dinp').value='';build();};
 $('dinp').onchange=()=>build();
 $('go').onclick=()=>build();
-function step(dir){ // ◀ раніше, ▶ пізніше (список відображається від нових до старих)
+function step(dir){ if(ovOpen) closeUnit(false); // ◀ раніше, ▶ пізніше (список відображається від нових до старих)
   const cur=curDate();let i=DATES.indexOf(cur);
   if(i<0){i=DATES.findIndex(d=>d>=cur);if(i<0)i=DATES.length-1;}else i+=dir;
   i=Math.max(0,Math.min(DATES.length-1,i));$('dinp').value='';$('dsel').value=DATES[i];build();
@@ -370,31 +404,89 @@ function cell(obj){
   if(k.length===1) return {html:String(obj[k[0]]),txt:String(obj[k[0]])};
   return {html:k.map(c=>obj[c]+'<small class="l">'+nm(c)+'</small>').join(''),txt:k.map(c=>obj[c]+' ('+nm(c)+')').join(' + ')};
 }
+const dv=x=>x==null?{html:'-',txt:'-',dash:true}:{html:String(x),txt:String(x)};
+function cellsOf(u){
+  const ft=u.fuelType&&u.fuelType!=='ДП'?u.fuelType:'';
+  const fr=u.fuelRest==null?dv(null):{html:u.fuelRest+(ft?'<small class="l">'+ft+'</small>':''),txt:u.fuelRest+(ft?' ('+ft+')':'')};
+  return [dv(u.fuelIn),dv(u.fuelOut),fr,dv(u.mainIn),dv(u.mainOut),cell(u.main),dv(u.smallIn),dv(u.smallOut),cell(u.small)];
+}
+function grp(cls,lab,a){
+  return '<div class="gr '+cls+'"><div class="gl">'+lab+'</div><div class="tri">'+
+    ['Приход','Розхід','Залишок'].map((t,i)=>'<div'+(i===2?' class="rest"':'')+'><i>'+t+'</i><b'+(a[i].dash?' class="d"':'')+'>'+a[i].html+'</b></div>').join('')+'</div></div>';
+}
 function build(){
   const date=curDate(); if(!date) return;
   const {rows,used}=buildTable(MSGS,date);
-  const v=x=>x==null?{html:'-',txt:'-',dash:true}:{html:String(x),txt:String(x)};
   const matrix=[],trs=[],cards=[],warns=[];
-  for(const u of rows){
-    const ft=u.fuelType&&u.fuelType!=='ДП'?u.fuelType:'';
-    const fr=u.fuelRest==null?v(null):{html:u.fuelRest+(ft?'<small class="l">'+ft+'</small>':''),txt:u.fuelRest+(ft?' ('+ft+')':'')};
-    const cs=[v(u.fuelIn),v(u.fuelOut),fr,v(u.mainIn),v(u.mainOut),cell(u.main),v(u.smallIn),v(u.smallOut),cell(u.small)];
-    trs.push('<tr><td class="name">'+esc(u.name)+'</td>'+cs.map(c=>'<td'+(c.dash?' class="d"':'')+'>'+c.html+'</td>').join('')+'</tr>');
-    const grp=(cls,lab,a)=>'<div class="gr '+cls+'"><div class="gl">'+lab+'</div><div class="tri">'+
-      ['Приход','Розхід','Залишок'].map((t,i)=>'<div'+(i===2?' class="rest"':'')+'><i>'+t+'</i><b'+(a[i].dash?' class="d"':'')+'>'+a[i].html+'</b></div>').join('')+'</div></div>';
-    cards.push('<div class="uc"><div class="un">'+esc(u.name)+'</div>'+grp('g1','Паливо, л',cs.slice(0,3))+grp('g2','БК основної зброї',cs.slice(3,6))+grp('g3','БК стрілкової зброї',cs.slice(6,9))+'</div>');
+  rows.forEach((u,i)=>{
+    const cs=cellsOf(u);
+    trs.push('<tr data-i="'+i+'"><td class="name" data-i="'+i+'" tabindex="0" role="button" title="Показати повідомлення"><span class="nm-t">'+esc(u.name)+'</span></td>'+cs.map(c=>'<td'+(c.dash?' class="d"':'')+'>'+c.html+'</td>').join('')+'</tr>');
+    cards.push('<div class="uc" data-i="'+i+'"><div class="un" data-i="'+i+'" tabindex="0" role="button">'+esc(u.name)+'</div>'+grp('g1','Паливо, л',cs.slice(0,3))+grp('g2','БК основної зброї',cs.slice(3,6))+grp('g3','БК стрілкової зброї',cs.slice(6,9))+'</div>');
     matrix.push([u.name,...cs.map(c=>c.txt)]);
     if(u.fuelRest==null||(!Object.keys(u.main).length&&!Object.keys(u.small).length)) warns.push(u.name);
-  }
+  });
   LAST={date,rows,matrix};
   $('res').hidden=false;
-  $('title').textContent='Дата: '+fmtDate(date)+' · підрозділів: '+rows.length;
+  $('title').textContent='Дата: '+fmtDate(date)+' · підрозділів: '+rows.length+' · натисніть на назву, щоб побачити повідомлення';
   $('tb').innerHTML=trs.join('')||'<tr><td colspan="10" class="d">За цю дату звітів не знайдено</td></tr>';
   $('cards').innerHTML=cards.join('')||'<div class="mut">За цю дату звітів не знайдено</div>';
   const w=$('warn');
   if(warns.length){w.hidden=false;w.textContent='Неповні звіти (немає палива або БК): '+warns.join(', ');}else w.hidden=true;
   $('used').innerHTML=used.map(u=>'<div class="mut">'+u.time+' · '+esc(u.sender||'—')+' → <b>'+esc(u.name)+'</b></div><pre>'+esc(u.body)+'</pre>').join('');
 }
+
+/* ===== перегляд повідомлень МВГ + повернення на те саме місце ===== */
+let ovOpen=false,ovPushed=false,saved=null,ovIdx=-1;
+function renderUnit(i){
+  const u=LAST.rows[i],cs=cellsOf(u);
+  $('ovt').textContent=u.name;
+  $('ovsub').textContent=fmtDate(LAST.date)+' · повідомлень: '+u.msgs.length+' · '+(i+1)+' з '+LAST.rows.length;
+  let html='<div class="sec">Підсумок за день</div><div class="uc">'+grp('g1','Паливо, л',cs.slice(0,3))+grp('g2','БК основної зброї',cs.slice(3,6))+grp('g3','БК стрілкової зброї',cs.slice(6,9))+'</div>';
+  html+='<div class="sec">Повідомлення ('+u.msgs.length+')</div>';
+  if(u.msgs.length>1) html+='<div class="mut" style="margin-bottom:8px">Є кілька звітів — у підсумку береться останнє значення кожного показника.</div>';
+  html+=u.msgs.map((m,k)=>'<div class="msg'+(k===u.msgs.length-1?' last':'')+'"><div class="mh"><b>'+m.time+'</b><span>'+esc(m.sender||'—')+'</span></div><pre>'+esc(m.body)+'</pre></div>').join('');
+  $('ovbody').innerHTML=html;$('ovbody').scrollTop=0;
+  $('ovprev').disabled=i<=0;$('ovnext').disabled=i>=LAST.rows.length-1;
+}
+function openUnit(i,opener){
+  if(!LAST||!LAST.rows[i]) return;
+  if(!ovOpen){
+    saved={y:window.scrollY||document.documentElement.scrollTop,x:$('scrollbox').scrollLeft,opener:opener||null};
+    ovOpen=true;$('ov').hidden=false;document.documentElement.classList.add('lock');
+    if(!ovPushed){try{history.pushState({ov:1},'');ovPushed=true;}catch(e){}}
+  }
+  ovIdx=i;renderUnit(i);$('ovback').focus({preventScroll:true});
+}
+function closeUnit(fromPop){
+  if(!ovOpen) return;
+  ovOpen=false;$('ov').hidden=true;document.documentElement.classList.remove('lock');
+  const s=saved,idx=ovIdx;
+  const restore=()=>{
+    window.scrollTo(0,s.y);$('scrollbox').scrollLeft=s.x;
+    document.querySelectorAll('tr[data-i="'+idx+'"],.uc[data-i="'+idx+'"]').forEach(el=>{el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1900);});
+    const el=document.querySelector('td.name[data-i="'+idx+'"],.un[data-i="'+idx+'"]');
+    if(el&&el.offsetParent) try{el.focus({preventScroll:true});}catch(e){}
+  };
+  restore();requestAnimationFrame(restore);setTimeout(restore,60);
+  if(ovPushed&&!fromPop){ovPushed=false;try{history.back();}catch(e){}}else ovPushed=false;
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest&&e.target.closest('td.name[data-i],.un[data-i]');
+  if(el) openUnit(+el.dataset.i,el);
+});
+document.addEventListener('keydown',e=>{
+  if(ovOpen){
+    if(e.key==='Escape') closeUnit(false);
+    else if(e.key==='ArrowLeft'&&ovIdx>0) openUnit(ovIdx-1);
+    else if(e.key==='ArrowRight'&&ovIdx<LAST.rows.length-1) openUnit(ovIdx+1);
+    return;
+  }
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('td.name[data-i],.un[data-i]')){e.preventDefault();openUnit(+e.target.dataset.i,e.target);}
+});
+window.addEventListener('popstate',()=>{ if(ovOpen){ovPushed=false;closeUnit(true);} });
+$('ovback').onclick=()=>closeUnit(false);
+$('ovprev').onclick=()=>openUnit(ovIdx-1);
+$('ovnext').onclick=()=>openUnit(ovIdx+1);
 
 const HEAD=['Назва МВГ','Приход палива, л','Розхід палива, л','Залишок палива, л','Приход БК основної зброї','Розхід БК основної зброї','Залишок БК основної зброї','Приход БК стрілкової зброї','Розхід БК стрілкової зброї','Залишок БК стрілкової зброї'];
 async function toClip(t,btn){
