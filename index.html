@@ -1,32 +1,450 @@
 <!DOCTYPE html>
 <html lang="uk">
-    <link rel="manifest" href="assets/manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('assets/service-worker.js')
-      .then((reg) => console.log('Service Worker зареєстровано', reg))
-      .catch((err) => console.error('Помилка реєстрації Service Worker', err));
-  }
-</script>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>ППО СМС</title>
-    <link rel="icon" href="assets/favicon.4ad42837.ico"/>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PDCMQVM');</script>
-    <!-- End Google Tag Manager -->
-  <script type="module" crossorigin src="assets/index.9d19f81e.js"></script>
-  <link rel="stylesheet" href="assets/index.7c801b86.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1f3a27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Зведення">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="icons/logo.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Зведення: паливо та БК</title>
+<style>
+:root{--bg:#eef0f3;--card:#fff;--tx:#161b24;--mut:#667085;--bd:#cfd5df;--ac:#2f5d3a;--acx:#fff;--ac2:#e3eee6;--warn:#fff1c9;
+ --g1:#dbe8f7;--g1t:#173250;--g2:#f4e3cb;--g2t:#573708;--g3:#e5dcf2;--g3t:#38265a}
+:root[data-theme=dark]{--bg:#0f1216;--card:#1a1f27;--tx:#e8ebf1;--mut:#98a1b3;--bd:#323a47;--ac:#86cc95;--acx:#0d1f12;--ac2:#223127;--warn:#3a321a;
+ --g1:#243248;--g1t:#d6e4f8;--g2:#40321f;--g2t:#f2dfc2;--g3:#31284a;--g3t:#e4dbf5}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1216;--card:#1a1f27;--tx:#e8ebf1;--mut:#98a1b3;--bd:#323a47;--ac:#86cc95;--acx:#0d1f12;--ac2:#223127;--warn:#3a321a;
+ --g1:#243248;--g1t:#d6e4f8;--g2:#40321f;--g2t:#f2dfc2;--g3:#31284a;--g3t:#e4dbf5}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+ padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.wrap{max-width:1300px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+h1{font-size:19px;margin:0;display:flex;align-items:center;gap:10px}h1 img{border-radius:8px}
+.ios{background:var(--ac2);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select,input[type=date]{font:inherit;font-size:16px;min-height:46px;padding:8px 14px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+button{cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.98)}
+button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+.sq{min-width:46px;padding:8px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:20px 12px;text-align:center;color:var(--mut);cursor:pointer;min-height:84px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.drop b{color:var(--tx);font-size:17px}
+.drop.on{border-color:var(--ac);background:var(--ac2)}
+.mut{color:var(--mut);font-size:13px}
+.ok{color:var(--ac)}
+.dates{display:flex;gap:6px;width:100%;margin-top:10px}
+.dates select{flex:1;min-width:0}
+.dates input{flex:1;min-width:0}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts button{flex:1 1 140px}
+#title{font-weight:700;font-size:17px}
+/* таблиця (планшет/ПК) */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px;border:1px solid var(--bd);border-radius:10px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:880px;font-variant-numeric:tabular-nums;font-size:15px}
+th,td{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:8px 8px;text-align:center}
+th:last-child,td:last-child{border-right:0}
+tbody tr:last-child td{border-bottom:0}
+thead th{font-size:13px;font-weight:700}
+th.g1{background:var(--g1);color:var(--g1t)}th.g2{background:var(--g2);color:var(--g2t)}th.g3{background:var(--g3);color:var(--g3t)}
+th.nm{background:var(--ac2);position:sticky;left:0;z-index:2}
+td.name{text-align:left;font-weight:700;white-space:nowrap;position:sticky;left:0;background:var(--card);z-index:1}
+td.d,.d{color:var(--mut)}
+tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card) 94%,var(--tx))}
+tbody tr:nth-child(even) td.name{background:color-mix(in srgb,var(--card) 94%,var(--tx))}
+small.l{display:block;color:var(--mut);font-size:11px;font-weight:400}
+/* картки (телефон) */
+.cards{display:none;margin-top:10px;gap:10px;flex-direction:column}
+.uc{border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.un{padding:9px 12px;font-weight:700;font-size:17px;background:var(--ac2)}
+.gr{display:grid;grid-template-columns:78px 1fr;align-items:stretch;border-top:1px solid var(--bd)}
+.gl{padding:8px;font-size:12px;font-weight:700;display:flex;align-items:center;line-height:1.2}
+.gr.g1 .gl{background:var(--g1);color:var(--g1t)}.gr.g2 .gl{background:var(--g2);color:var(--g2t)}.gr.g3 .gl{background:var(--g3);color:var(--g3t)}
+.tri{display:grid;grid-template-columns:repeat(3,1fr)}
+.tri div{padding:6px 4px;text-align:center;border-left:1px solid var(--bd)}
+.tri i{display:block;font-style:normal;font-size:11px;color:var(--mut)}
+.tri b{font-size:18px;font-variant-numeric:tabular-nums}
+.tri b.d{font-weight:400}
+.tri .rest b{color:var(--ac)}
+.warn{background:var(--warn);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px}
+details{margin-top:12px}summary{cursor:pointer;color:var(--mut);padding:8px 0}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:8px;border-radius:8px;font-size:13px;margin:6px 0}
+@media(max-width:760px){
+  .scroll{display:none}.cards{display:flex}
+  .acts button{flex:1 1 45%}
+}
+@media print{
+  body{background:#fff;color:#000;padding:0}.card{border:0;padding:0}.drop,.top,.acts,.dates,details,#fcard{display:none!important}
+  .scroll{display:block!important;border:0;overflow:visible}.cards{display:none!important}table{min-width:0;font-size:11px}
+  td.name,th.nm{position:static}
+}
+</style>
 </head>
-<body class="min-h-screen bg-gray-100 dark:bg-gray-900">
-<div id="app"></div>
+<body>
+<div class="wrap">
+<div class="top"><h1><img src="icons/logo.svg" alt="" width="34" height="34" onerror="this.remove()"> Зведення: паливо та БК</h1><div class="row"><button id="install" class="pri" hidden>📲 Встановити</button><button id="theme" class="sq" title="Тема: авто / день / ніч">🌓</button></div></div>
 
+<div class="ios" id="ioshint" hidden>Щоб встановити на iPhone/iPad: натисніть <b>«Поділитися» ⬆️ → «На початковий екран»</b>.</div>
+
+<div class="card" id="fcard">
+  <label class="drop" id="drop" for="file"><b>Вибрати файл чату WhatsApp</b><span>ZIP-архів експорту (або .txt). На iPhone — з «Файлів».</span>
+    <input type="file" id="file" hidden></label>
+  <div class="mut" id="fileinfo" style="margin-top:8px">Файл не вибрано. Усе обробляється лише на вашому пристрої, нічого нікуди не надсилається.</div>
+  <div class="dates">
+    <button id="prev" class="sq" disabled aria-label="Попередній день">◀</button>
+    <select id="dsel" disabled aria-label="Дата"></select>
+    <button id="next" class="sq" disabled aria-label="Наступний день">▶</button>
+  </div>
+  <div class="dates"><input type="date" id="dinp" disabled aria-label="Дата вручну"><button class="pri" id="go" disabled>Побудувати</button></div>
+</div>
+
+<div class="card" id="res" hidden>
+  <div id="title"></div>
+  <div class="acts">
+    <button id="copy">📋 Копіювати для Excel</button>
+    <button id="txt">📝 Копіювати текстом</button>
+    <button id="share" hidden>📤 Поділитися</button>
+    <button id="csv">💾 CSV</button>
+    <button id="print">🖨 Друк</button>
+  </div>
+  <div class="scroll">
+  <table id="tbl">
+    <thead>
+      <tr><th rowspan="2" class="nm">Назва МВГ</th><th colspan="3" class="g1">Паливо</th><th colspan="3" class="g2">БК основної зброї</th><th colspan="3" class="g3">БК стрілкової зброї</th></tr>
+      <tr><th class="g1">Приход палива, л</th><th class="g1">Розхід палива, л</th><th class="g1">Залишок палива, л</th>
+          <th class="g2">Приход БК основної зброї</th><th class="g2">Розхід БК основної зброї</th><th class="g2">Залишок БК основної зброї</th>
+          <th class="g3">Приход БК стрілкової зброї</th><th class="g3">Розхід БК стрілкової зброї</th><th class="g3">Залишок БК стрілкової зброї</th></tr>
+    </thead>
+    <tbody id="tb"></tbody>
+  </table>
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="warn" id="warn" hidden></div>
+  <div class="mut" style="margin-top:10px">«-» — у повідомленні цих даних немає. Якщо МВГ надіслало кілька звітів за день, береться останнє значення кожного показника. Основна зброя: 12.7, 14.5, 30 мм (Praga), ЗУ-23; стрілкова: 5.45, 7.62. Загальний «розхід БК» без калібру відноситься до основної зброї.</div>
+  <details><summary>Які повідомлення використано (для перевірки)</summary><div id="used"></div></details>
+</div>
+</div>
+<script>
+/* ===== ПАРСЕР ===== */
+function norm(s){
+  return s.replace(/[\u200e\u200f\u00a0]/g,' ')
+          .replace(/<Це повідомлення було відредаговано>/gi,'')
+          .replace(/(?<=\d),(?=\d)/g,'.')
+          .replace(/[‐‑–—]/g,'-');
+}
+const HDR=/^[\u200e\u200f]?\[?(\d{1,2})[./](\d{1,2})[./](\d{2,4}),?\s+(\d{1,2}:\d{2})(?::\d{2})?\]?\s*(?:-\s*)?(.*)$/;
+
+function parseChat(text){
+  const lines=text.replace(/\r/g,'').split('\n');
+  const msgs=[];let cur=null;
+  for(const l of lines){
+    const m=HDR.exec(l);
+    if(m){
+      let y=+m[3]; if(y<100) y+=2000;
+      const date=y+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[1]).padStart(2,'0');
+      const rest=m[5];
+      const i=rest.indexOf(': ');
+      cur={date,time:m[4].padStart(5,'0'),sender:i>=0?rest.slice(0,i):'',body:i>=0?rest.slice(i+2):rest,sys:i<0};
+      msgs.push(cur);
+    } else if(cur){ cur.body+='\n'+l; }
+  }
+  if(msgs.length) return msgs;
+  // немає заголовків WhatsApp: вважаємо, що це просто текст зі звітами, розділеними порожніми рядками
+  return text.replace(/\r/g,'').split(/\n\s*\n/).filter(s=>s.trim()).map((b,i)=>({date:'0000-00-00',time:String(i).padStart(5,'0'),sender:'',body:b,sys:false}));
+}
+
+const CAL_MAIN=[['12.7',/(?<![\d.])12\.7/],['14.5',/(?<![\d.])14\.5/],['23',/(?<![\d.])23\s*(?:мм|mm)/i]];
+const CAL_SMALL=[['5.45',/(?<![\d.])5\.45/],['7.62',/(?<![\d.])7\.62/]];
+const GAP='\\s*(?:мм|mm)?[\\s.,\\-:]*(?:залишок\\s*(?:б\\/?к)?[\\s\\-:]*)?';
+
+function parseReport(rawBody,sender){
+  if(rawBody.length>800) return null;
+  const t=norm(rawBody);
+  if(/ціль|№\s*цілі|дата:|результат:|опитування|було видалено|надайте/i.test(t)) return null;
+  const firstRaw=t.split('\n')[0];
+  const cut=firstRaw.search(/4[\s.]5[\s.]*0|прилади|особовий|зброя та|залишок|паливо|озброєння|вг\s*т-?\d/i);
+  let name=(cut>=0?firstRaw.slice(0,cut):firstRaw);
+  name=name.replace(/["«»“”']/g,'').replace(/[\s.,;:-]+$/,'').replace(/^[\s.,;:-]+/,'').replace(/\s+/g,' ').trim().toUpperCase();
+  if(!name||name.length>40) name=(sender||'?').toUpperCase();
+  name=name.replace(/([A-ZА-ЯІЇЄҐ])(\d)/g,'$1 $2').replace(/(\d)([A-ZА-ЯІЇЄҐ])/g,'$1 $2');
+  // «ВГ Т-145» – заголовок без 4.5.0 і з назвою до кінця рядка
+  const r={name,fuelRest:null,fuelType:null,fuelIn:null,fuelOut:null,main:{},small:{},mainIn:null,mainOut:null,smallIn:null,smallOut:null};
+
+  // --- ПАЛИВО: залишок
+  let m=/(?:залишок\s*)?пал(?:иво|ива|ьного)\s*(?:(д[\/(]?п|а\s?-?\s?\d\d)\s*)?[\s,(:-]*(\d+)/i.exec(t)
+     ||/залишок\s*(д[\/(]?п)\s*[\s,:-]*(\d+)/i.exec(t)
+     ||/залишок[\s:-]*()(\d+)\s*л(?![а-яіїєґ])/i.exec(t);
+  if(m){ r.fuelRest=+m[2]; if(m[1]) r.fuelType=m[1].toUpperCase().replace(/\s|-/g,'').replace('Д(П','ДП').replace('Д/П','ДП'); }
+  if(r.fuelRest!=null&&!r.fuelType){ const ft=/пал(?:иво|ива|ьного)\s*:?\s*(д[\/(]?п|а\s?-?\s?\d\d)/i.exec(t); if(ft) r.fuelType=ft[1].toUpperCase().replace(/\s|-/g,'').replace('Д(П','ДП').replace('Д/П','ДП'); }
+  // --- ПАЛИВО: приход
+  m=/(?:заправк[аи]|(?:прихід|приход)\s*(?:палива|пального))\s*[\s:-]*(\d+)/i.exec(t);
+  if(m) r.fuelIn=+m[1];
+
+  // --- розхід (л -> паливо, інакше -> БК)
+  const spent=[...t.matchAll(/(?:розх[іi]д|витрат[аиі]|витрачено)\s*(?:б\/?к)?\s*(?:за\s+минулу\s+добу)?\s*[\s:-]*(\d+)\s*(л(?![а-яіїєґ])|шт)?/gi)];
+  for(const s of spent){
+    if(s[2]&&s[2].toLowerCase()==='л') r.fuelOut=+s[1];
+    else r.ammoOut=+s[1];
+  }
+  // --- БК
+  for(const [cal,re] of CAL_MAIN){
+    const x=new RegExp(re.source+GAP+'(\\d+)(?!\\d)','i').exec(t);
+    if(x) r.main[cal]=+x[1];
+  }
+  // Praga / Прага 30мм
+  const pr=/(?:pra[gq]a|прага)[\s\S]{0,40}?30\s*(?:мм|mm)[\s:-]*(?:б\/?к\s*:?\s*)?(\d+)\s*шт/i.exec(t)
+         ||/30\s*(?:мм|mm)[\s:-]*(?:б\/?к\s*:?\s*)?(\d+)\s*шт/i.exec(t);
+  if(pr) r.main['30']=+pr[1];
+  for(const [cal,re] of CAL_SMALL){
+    const x=new RegExp(re.source+GAP+'(\\d+)(?!\\d)','i').exec(t);
+    if(x) r.small[cal]=+x[1];
+  }
+  if(!Object.keys(r.main).length&&!Object.keys(r.small).length){
+    const g=/(?:залишок\s*б\/?к|б\/?к\s*(?:на\s*залишку)?)\s*[:-]*\s*(\d+)/i.exec(t); if(g) r.main['?']=+g[1];
+  }
+  const hasMain=Object.keys(r.main).length>0, hasSmall=Object.keys(r.small).length>0;
+  if(r.ammoOut!=null){ if(hasMain) r.mainOut=r.ammoOut; else if(hasSmall) r.smallOut=r.ammoOut; }
+  delete r.ammoOut;
+  const ai=/(?:прихід|приход)\s*(?:б\/?к|бк)\s*[\s:-]*(\d+)/i.exec(t);
+  if(ai){ if(hasMain) r.mainIn=+ai[1]; else r.smallIn=+ai[1]; }
+
+  if(r.fuelRest==null&&r.fuelOut==null&&r.fuelIn==null&&!hasMain&&!hasSmall) return null;
+  // має бути хоч щось схоже на звіт: ключ 4.5.0 / залишок / паливо
+  if(!/4[\s.]5[\s.]*0|залишок|пал(иво|ива)|б\/?к/i.test(t)) return null;
+  return r;
+}
+
+function unitKey(name){
+  const n=name.toLowerCase().replace(/^(?:мвг|вг)(?![а-яіїєґa-z])[\s\-]*/,'');
+  return n.replace(/[^a-zа-яіїєґ]/g,'')+'|'+n.replace(/\D/g,'');
+}
+
+function buildTable(msgs,date){
+  const map=new Map();const used=[];
+  const day=msgs.filter(m=>m.date===date&&!m.sys).sort((a,b)=>a.time<b.time?-1:a.time>b.time?1:0);
+  for(const m of day){
+    const r=parseReport(m.body,m.sender); if(!r) continue;
+    used.push({time:m.time,sender:m.sender,name:r.name,body:m.body});
+    const k=unitKey(r.name);
+    let u=map.get(k);
+    if(!u){u={name:r.name,fuelRest:null,fuelType:null,fuelIn:null,fuelOut:null,main:{},small:{},mainIn:null,mainOut:null,smallIn:null,smallOut:null,count:0};map.set(k,u);}
+    u.count++; u.name=r.name.length>=u.name.length?r.name:u.name;
+    for(const f of ['fuelRest','fuelType','fuelIn','fuelOut','mainIn','mainOut','smallIn','smallOut']) if(r[f]!=null) u[f]=r[f];
+    Object.assign(u.main,r.main); Object.assign(u.small,r.small);
+  }
+  return {rows:[...map.values()],used};
+}
+function availableDates(msgs){
+  const s=new Set();
+  for(const m of msgs){ if(!m.sys&&!s.has(m.date)&&parseReport(m.body,m.sender)) s.add(m.date); }
+  return [...s].sort();
+}
+
+/* ===== inflate для старих iPhone/браузерів без DecompressionStream ===== */
+function inflateRaw(src){
+  let pos=0,bb=0,bc=0,o=new Uint8Array(Math.max(65536,src.length*4)),op=0;
+  const need=n=>{if(op+n>o.length){const t=new Uint8Array(Math.max(o.length*2,op+n));t.set(o);o=t;}};
+  const bits=n=>{while(bc<n){bb|=src[pos++]<<bc;bc+=8;}const v=bb&((1<<n)-1);bb>>>=n;bc-=n;return v;};
+  const build=lens=>{const count=new Uint16Array(16),sym=new Uint16Array(lens.length),offs=new Uint16Array(16);
+    for(const l of lens)count[l]++;count[0]=0;for(let i=1;i<16;i++)offs[i]=offs[i-1]+count[i-1];
+    for(let s=0;s<lens.length;s++)if(lens[s])sym[offs[lens[s]]++]=s;return{count,sym};};
+  const decode=h=>{let code=0,first=0,idx=0;for(let len=1;len<16;len++){code|=bits(1);const c=h.count[len];
+    if(code-c<first)return h.sym[idx+(code-first)];idx+=c;first+=c;first<<=1;code<<=1;}throw new Error('Помилка розпакування');};
+  const LB=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258],
+        LE=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],
+        DB=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577],
+        DE=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+  let last;
+  do{
+    last=bits(1);const t=bits(2);
+    if(t===0){bb=0;bc=0;const len=src[pos]|(src[pos+1]<<8);pos+=4;need(len);o.set(src.subarray(pos,pos+len),op);op+=len;pos+=len;}
+    else if(t===3)throw new Error('Помилка розпакування');
+    else{
+      let lh,dh;
+      if(t===1){const l=new Uint8Array(288);for(let i=0;i<288;i++)l[i]=i<144?8:i<256?9:i<280?7:8;lh=build(l);dh=build(new Uint8Array(30).fill(5));}
+      else{
+        const nl=bits(5)+257,nd=bits(5)+1,nc=bits(4)+4,ord=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15],cl=new Uint8Array(19);
+        for(let i=0;i<nc;i++)cl[ord[i]]=bits(3);
+        const ch=build(cl),lens=new Uint8Array(nl+nd);let i=0;
+        while(i<nl+nd){const s=decode(ch);if(s<16)lens[i++]=s;else{let prev=0,rep;
+          if(s===16){prev=lens[i-1];rep=3+bits(2);}else if(s===17)rep=3+bits(3);else rep=11+bits(7);
+          while(rep--)lens[i++]=prev;}}
+        lh=build(lens.subarray(0,nl));dh=build(lens.subarray(nl));
+      }
+      for(;;){let s=decode(lh);
+        if(s<256){need(1);o[op++]=s;}
+        else if(s===256)break;
+        else{s-=257;const len=LB[s]+bits(LE[s]);const ds=decode(dh);const dist=DB[ds]+bits(DE[ds]);need(len);for(let k=0;k<len;k++){o[op]=o[op-dist];op++;}}}
+    }
+  }while(!last);
+  return o.subarray(0,op);
+}
+/* ===== ZIP без бібліотек ===== */
+async function readZipText(buf){
+  const dv=new DataView(buf),u8=new Uint8Array(buf);
+  let e=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65600);i--){ if(dv.getUint32(i,true)===0x06054b50){e=i;break;} }
+  if(e<0) throw new Error('Це не ZIP-архів');
+  const cnt=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); let best=null;
+  for(let k=0;k<cnt;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),usize=dv.getUint32(p+24,true);
+    const nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lho=dv.getUint32(p+42,true);
+    const nm=new TextDecoder('utf-8').decode(u8.subarray(p+46,p+46+nl));
+    if(/\.txt$/i.test(nm)&&(!best||usize>best.usize)) best={method,csize,usize,lho,nm};
+    p+=46+nl+el+cl;
+  }
+  if(!best) throw new Error('У архіві немає .txt файлу');
+  const nl2=dv.getUint16(best.lho+26,true),el2=dv.getUint16(best.lho+28,true);
+  const start=best.lho+30+nl2+el2; const data=u8.subarray(start,start+best.csize);
+  let out;
+  if(best.method===0) out=data;
+  else if(best.method===8){
+    let done=false;
+    if(typeof DecompressionStream!=='undefined'&&!globalThis.__noDS){
+      try{out=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());done=true;}catch(e){}
+    }
+    if(!done) out=inflateRaw(data);
+  } else throw new Error('Непідтримуваний метод стиснення ZIP');
+  return new TextDecoder('utf-8').decode(out);
+}
+
+/* ===== ІНТЕРФЕЙС ===== */
+const $=id=>document.getElementById(id);
+let MSGS=[],DATES=[],LAST=null;
+const fmtDate=d=>d==='0000-00-00'?'без дати':d.split('-').reverse().join('.');
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* тема: авто → день → ніч */
+let theme=store.get('theme')||'auto';
+function applyTheme(){const r=document.documentElement;if(theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',theme==='day'?'light':'dark');
+  $('theme').textContent=theme==='auto'?'🌓':theme==='day'?'☀️':'🌙';}
+$('theme').onclick=()=>{theme=theme==='auto'?'day':theme==='day'?'night':'auto';store.set('theme',theme);applyTheme();};
+applyTheme();
+
+async function loadFile(f){
+  try{
+    $('fileinfo').textContent='Читаю файл…';
+    let text;
+    const isZip=/\.zip$/i.test(f.name)||/zip/.test(f.type);
+    text=isZip?await readZipText(await f.arrayBuffer()):await f.text();
+    MSGS=parseChat(text);
+    DATES=availableDates(MSGS);
+    $('fileinfo').innerHTML='<span class="ok">✔</span> '+esc(f.name)+'<br>Повідомлень: '+MSGS.length+', днів зі звітами: '+DATES.length;
+    const sel=$('dsel');sel.innerHTML='';
+    DATES.slice().reverse().forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=fmtDate(d);sel.appendChild(o);});
+    for(const id of ['dsel','prev','next','dinp','go']) $(id).disabled=!DATES.length;
+    $('dinp').value='';
+    if(DATES.length){$('dinp').min=DATES[0];$('dinp').max=DATES[DATES.length-1];build();}
+    else $('fileinfo').innerHTML+='<br>Звітів не знайдено. Перевірте, що це експорт потрібного чату.';
+  }catch(e){$('fileinfo').textContent='Помилка: '+e.message;}
+}
+$('file').onchange=e=>{const f=e.target.files[0];if(f)loadFile(f);e.target.value='';};
+['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('on');}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('on');}));
+$('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f);});
+$('dsel').onchange=()=>{$('dinp').value='';build();};
+$('dinp').onchange=()=>build();
+$('go').onclick=()=>build();
+function step(dir){ // ◀ раніше, ▶ пізніше (список відображається від нових до старих)
+  const cur=curDate();let i=DATES.indexOf(cur);
+  if(i<0){i=DATES.findIndex(d=>d>=cur);if(i<0)i=DATES.length-1;}else i+=dir;
+  i=Math.max(0,Math.min(DATES.length-1,i));$('dinp').value='';$('dsel').value=DATES[i];build();
+}
+$('prev').onclick=()=>step(-1);$('next').onclick=()=>step(1);
+const curDate=()=>$('dinp').value||$('dsel').value;
+
+function cell(obj){
+  const k=Object.keys(obj);
+  if(!k.length) return {html:'-',txt:'-',dash:true};
+  const nm=c=>c==='30'?'30 мм':c==='?'?'БК':c;
+  if(k.length===1) return {html:String(obj[k[0]]),txt:String(obj[k[0]])};
+  return {html:k.map(c=>obj[c]+'<small class="l">'+nm(c)+'</small>').join(''),txt:k.map(c=>obj[c]+' ('+nm(c)+')').join(' + ')};
+}
+function build(){
+  const date=curDate(); if(!date) return;
+  const {rows,used}=buildTable(MSGS,date);
+  const v=x=>x==null?{html:'-',txt:'-',dash:true}:{html:String(x),txt:String(x)};
+  const matrix=[],trs=[],cards=[],warns=[];
+  for(const u of rows){
+    const ft=u.fuelType&&u.fuelType!=='ДП'?u.fuelType:'';
+    const fr=u.fuelRest==null?v(null):{html:u.fuelRest+(ft?'<small class="l">'+ft+'</small>':''),txt:u.fuelRest+(ft?' ('+ft+')':'')};
+    const cs=[v(u.fuelIn),v(u.fuelOut),fr,v(u.mainIn),v(u.mainOut),cell(u.main),v(u.smallIn),v(u.smallOut),cell(u.small)];
+    trs.push('<tr><td class="name">'+esc(u.name)+'</td>'+cs.map(c=>'<td'+(c.dash?' class="d"':'')+'>'+c.html+'</td>').join('')+'</tr>');
+    const grp=(cls,lab,a)=>'<div class="gr '+cls+'"><div class="gl">'+lab+'</div><div class="tri">'+
+      ['Приход','Розхід','Залишок'].map((t,i)=>'<div'+(i===2?' class="rest"':'')+'><i>'+t+'</i><b'+(a[i].dash?' class="d"':'')+'>'+a[i].html+'</b></div>').join('')+'</div></div>';
+    cards.push('<div class="uc"><div class="un">'+esc(u.name)+'</div>'+grp('g1','Паливо, л',cs.slice(0,3))+grp('g2','БК основної зброї',cs.slice(3,6))+grp('g3','БК стрілкової зброї',cs.slice(6,9))+'</div>');
+    matrix.push([u.name,...cs.map(c=>c.txt)]);
+    if(u.fuelRest==null||(!Object.keys(u.main).length&&!Object.keys(u.small).length)) warns.push(u.name);
+  }
+  LAST={date,rows,matrix};
+  $('res').hidden=false;
+  $('title').textContent='Дата: '+fmtDate(date)+' · підрозділів: '+rows.length;
+  $('tb').innerHTML=trs.join('')||'<tr><td colspan="10" class="d">За цю дату звітів не знайдено</td></tr>';
+  $('cards').innerHTML=cards.join('')||'<div class="mut">За цю дату звітів не знайдено</div>';
+  const w=$('warn');
+  if(warns.length){w.hidden=false;w.textContent='Неповні звіти (немає палива або БК): '+warns.join(', ');}else w.hidden=true;
+  $('used').innerHTML=used.map(u=>'<div class="mut">'+u.time+' · '+esc(u.sender||'—')+' → <b>'+esc(u.name)+'</b></div><pre>'+esc(u.body)+'</pre>').join('');
+}
+
+const HEAD=['Назва МВГ','Приход палива, л','Розхід палива, л','Залишок палива, л','Приход БК основної зброї','Розхід БК основної зброї','Залишок БК основної зброї','Приход БК стрілкової зброї','Розхід БК стрілкової зброї','Залишок БК стрілкової зброї'];
+async function toClip(t,btn){
+  const old=btn.textContent;
+  try{await navigator.clipboard.writeText(t);}
+  catch{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.focus();a.select();a.setSelectionRange(0,t.length);try{document.execCommand('copy');}catch(e){}a.remove();}
+  btn.textContent='Скопійовано ✔';setTimeout(()=>btn.textContent=old,1600);
+}
+const plain=()=>{
+  const d=x=>x==null?'-':x;
+  return 'Зведення за '+fmtDate(LAST.date)+'\n\n'+LAST.matrix.map(r=>r[0]+'\n'+
+    ' Паливо, л: прих '+r[1]+' / розх '+r[2]+' / зал '+r[3]+'\n'+
+    ' БК осн.: прих '+r[4]+' / розх '+r[5]+' / зал '+r[6]+'\n'+
+    ' БК стр.: прих '+r[7]+' / розх '+r[8]+' / зал '+r[9]).join('\n\n');
+};
+$('copy').onclick=()=>LAST&&toClip([HEAD,...LAST.matrix].map(r=>r.join('\t')).join('\n'),$('copy'));
+$('txt').onclick=()=>LAST&&toClip(plain(),$('txt'));
+if(navigator.share) $('share').hidden=false;
+$('share').onclick=()=>{if(LAST)navigator.share({title:'Зведення '+fmtDate(LAST.date),text:plain()}).catch(()=>{});};
+$('csv').onclick=()=>{
+  if(!LAST)return;
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  const t='\ufeff'+[HEAD,...LAST.matrix].map(r=>r.map(q).join(';')).join('\r\n');
+  const blob=new Blob([t],{type:'text/csv;charset=utf-8'}),name='zvedennia_'+LAST.date+'.csv';
+  const file=window.File?new File([blob],name,{type:'text/csv'}):null;
+  if(navigator.canShare&&file&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[file]}).catch(()=>{});return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+};
+$('print').onclick=()=>window.print();
+
+/* ===== PWA ===== */
+if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+let deferred=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false;});
+$('install').onclick=async()=>{if(!deferred)return;deferred.prompt();try{await deferred.userChoice;}catch(e){}deferred=null;$('install').hidden=true;};
+window.addEventListener('appinstalled',()=>{$('install').hidden=true;});
+const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!standalone&&/^https?:/.test(location.protocol)) $('ioshint').hidden=false;
+/* файл, отриманий через «Поділитися» в Android */
+if(/[?&]shared=1/.test(location.search)&&window.caches){
+  caches.open('shared-chat').then(async c=>{
+    const r=await c.match('shared-file'); if(!r)return;
+    const blob=await r.blob(); const name=decodeURIComponent(r.headers.get('x-name')||'chat.zip');
+    await c.delete('shared-file'); history.replaceState(null,'',location.pathname);
+    loadFile(new File([blob],name,{type:blob.type}));
+  }).catch(()=>{});
+}
+
+</script>
 </body>
 </html>
-
-
