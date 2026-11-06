@@ -101,12 +101,24 @@ html.lock{overflow:hidden}
 .msg pre{background:transparent;padding:0;margin:0;font:inherit;font-size:16px;line-height:1.45}
 .msg.last{border-color:var(--ac)}
 .sec{font-size:13px;font-weight:700;color:var(--mut);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.rem{border:1px solid var(--bd);border-left:6px solid #e0a100;border-radius:14px;background:var(--card);overflow:hidden;margin-top:10px}
+.rem .rh{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--warn)}
+.rem .ri{font-size:26px;line-height:1}
+.rem .rt{flex:1;min-width:0}.rem .rt b{display:block;font-size:17px}.rem .rt span{font-size:13px;color:var(--mut)}
+.rem .cnt{min-width:40px;height:40px;padding:0 8px;border-radius:20px;background:#c0392b;color:#fff;font-weight:700;font-size:19px;display:flex;align-items:center;justify-content:center}
+.rem .cnt.zero{background:var(--ac);color:var(--acx)}
+.rem .rb{padding:10px 14px 2px}
+.rem .rs{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin:6px 0}
+.rem .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rem .chip{background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:6px 12px;font-size:15px;font-weight:600}
+.rem .chip small{display:block;font-weight:400;color:var(--mut);font-size:11px}
+.rem .acts{padding:0 14px 14px;margin-top:6px}
 @media(max-width:760px){
   .scroll{display:none}.cards{display:flex}
   .acts button{flex:1 1 45%}
 }
 @media print{
-  body{background:#fff;color:#000;padding:0}.card{border:0;padding:0}.drop,.top,.acts,.dates,details,#fcard{display:none!important}
+  body{background:#fff;color:#000;padding:0}.card{border:0;padding:0}.drop,.top,.acts,.dates,details,#fcard,#rembox{display:none!important}
   .scroll{display:block!important;border:0;overflow:visible}.cards{display:none!important}table{min-width:0;font-size:11px}
   td.name,th.nm{position:static}
 }
@@ -132,12 +144,9 @@ html.lock{overflow:hidden}
 
 <div class="card" id="res" hidden>
   <div id="title"></div>
-  <div class="acts">
-    <button id="copy">📋 Копіювати для Excel</button>
-    <button id="txt">📝 Копіювати текстом</button>
-    <button id="share" hidden>📤 Поділитися</button>
-    <button id="csv">💾 CSV</button>
-    <button id="print">🖨 Друк</button>
+  <div class="rem" id="rembox">
+    <div id="remtxt"></div>
+    <div class="acts"><button id="remwa" class="pri">💬 Надіслати в WhatsApp</button><button id="remcopy">📋 Копіювати нагадування</button><button id="remshare" hidden>📤 Надіслати</button></div>
   </div>
   <div class="scroll" id="scrollbox">
   <table id="tbl">
@@ -260,6 +269,59 @@ function unitKey(name){
   return n.replace(/[^a-zа-яіїєґ]/g,'')+'|'+n.replace(/\D/g,'');
 }
 
+/* ===== ПОРЯДОК І ПЕРЕЛІК МВГ (редагуйте тут) =====
+   [назва для нагадування, номер, позивний] */
+const ROSTER=[
+ ['ПУ Сокіл, МВГ 19 Кодло','19','кодло'],
+ ['ПУ Сокіл, МВГ 28 Берлін','28','берлін'],
+ ['ПУ Сокіл, МВГ 29 Рим','29','рим'],
+ ['ВГ 50 Сіма','50','сіма'],
+ ['ВГ 52 Халк','52','халк'],
+ ['МВГ 10 Джокер','10','джокер'],
+ ['МВГ 12 Степ','12','степ'],
+ ['МВГ 14 Кактус','14','кактус'],
+ ['МВГ 15 Качан','15','качан'],
+ ['МВГ 9 Мул','9','мул'],
+ ['МВГ 25 Ватра','25','ватра'],
+ ['МВГ 26 Лондон','26','лондон'],
+ ['МВГ 27 Куба','27','куба'],
+ ['МВГ 34 Зірка','34','зірка']
+];
+function orderIdx(name){
+  const n=name.toLowerCase();
+  for(let i=0;i<ROSTER.length;i++) if(n.includes(ROSTER[i][2])) return i;
+  for(let i=0;i<ROSTER.length;i++) if(new RegExp('(?<!\\d)'+ROSTER[i][1]+'(?!\\d)').test(n)) return i;
+  return -1;
+}
+/* ВГ (на відміну від МВГ) палива не мають — його відсутність не вважається недоліком звіту */
+const noFuel=u=>/^ВГ(?![А-ЯІЇЄҐA-Z])/i.test(u.oi>=0?ROSTER[u.oi][0]:u.name);
+function reminderData(rows){
+  const have=new Set(rows.map(u=>u.oi).filter(i=>i>=0));
+  const miss=ROSTER.filter((_,i)=>!have.has(i)).map(r=>r[0]);
+  const part=[];
+  rows.filter(u=>u.oi>=0).sort((a,b)=>a.oi-b.oi).forEach(u=>{
+    const lack=[];
+    if(u.fuelRest==null&&!noFuel(u)) lack.push('паливо');
+    if(!Object.keys(u.main).length&&!Object.keys(u.small).length) lack.push('БК');
+    if(lack.length) part.push([ROSTER[u.oi][0],lack.join(', ')]);
+  });
+  return {miss,part};
+}
+function reminderText(date,rows){
+  const {miss,part}=reminderData(rows);
+  let t='⚠️ СМС на ПАЛИВО/БК · '+fmtDate(date)+'\n';
+  t+=miss.length?'Не надали відомості ('+miss.length+' МВГ):\n'+miss.map(n=>'• '+n).join('\n'):'Усі МВГ надали відомості ✅';
+  if(part.length) t+='\n\nНадали не повністю ('+part.length+'):\n'+part.map(p=>'• '+p[0]+' — немає: '+p[1]).join('\n');
+  return t;
+}
+function remHtml(date,rows){
+  const d=reminderData(rows),total=d.miss.length+d.part.length;
+  let h='<div class="rh"><div class="ri">⚠️</div><div class="rt"><b>СМС на ПАЛИВО/БК</b><span>'+fmtDate(date)+'</span></div><div class="cnt'+(total?'':' zero')+'">'+(total||'✓')+'</div></div><div class="rb">';
+  if(!total) h+='<div class="rs">Усі МВГ надали відомості ✅</div>';
+  if(d.miss.length) h+='<div class="rs">Не надали відомості · '+d.miss.length+'</div><div class="chips">'+d.miss.map(n=>'<span class="chip">'+esc(n)+'</span>').join('')+'</div>';
+  if(d.part.length) h+='<div class="rs">Надали не повністю · '+d.part.length+'</div><div class="chips">'+d.part.map(p=>'<span class="chip">'+esc(p[0])+'<small>немає: '+esc(p[1])+'</small></span>').join('')+'</div>';
+  return h+'</div>';
+}
 function buildTable(msgs,date){
   const map=new Map();const used=[];
   const day=msgs.filter(m=>m.date===date&&!m.sys).sort((a,b)=>a.time<b.time?-1:a.time>b.time?1:0);
@@ -274,7 +336,10 @@ function buildTable(msgs,date){
     for(const f of ['fuelRest','fuelType','fuelIn','fuelOut','mainIn','mainOut','smallIn','smallOut']) if(r[f]!=null) u[f]=r[f];
     Object.assign(u.main,r.main); Object.assign(u.small,r.small);
   }
-  return {rows:[...map.values()],used};
+  const rows=[...map.values()];
+  rows.forEach(u=>{u.oi=orderIdx(u.name);});
+  rows.sort((a,b)=>{const x=a.oi<0?999:a.oi,y=b.oi<0?999:b.oi;return x-y||a.name.localeCompare(b.name,'uk');});
+  return {rows,used};
 }
 function availableDates(msgs){
   const s=new Set();
@@ -423,9 +488,10 @@ function build(){
     trs.push('<tr data-i="'+i+'"><td class="name" data-i="'+i+'" tabindex="0" role="button" title="Показати повідомлення"><span class="nm-t">'+esc(u.name)+'</span></td>'+cs.map(c=>'<td'+(c.dash?' class="d"':'')+'>'+c.html+'</td>').join('')+'</tr>');
     cards.push('<div class="uc" data-i="'+i+'"><div class="un" data-i="'+i+'" tabindex="0" role="button">'+esc(u.name)+'</div>'+grp('g1','Паливо, л',cs.slice(0,3))+grp('g2','БК основної зброї',cs.slice(3,6))+grp('g3','БК стрілкової зброї',cs.slice(6,9))+'</div>');
     matrix.push([u.name,...cs.map(c=>c.txt)]);
-    if(u.fuelRest==null||(!Object.keys(u.main).length&&!Object.keys(u.small).length)) warns.push(u.name);
+    if((u.fuelRest==null&&!noFuel(u))||(!Object.keys(u.main).length&&!Object.keys(u.small).length)) warns.push(u.name);
   });
-  LAST={date,rows,matrix};
+  LAST={date,rows,matrix,rem:reminderText(date,rows)};
+  $('remtxt').innerHTML=remHtml(date,rows);
   $('res').hidden=false;
   $('title').textContent='Дата: '+fmtDate(date)+' · підрозділів: '+rows.length+' · натисніть на назву, щоб побачити повідомлення';
   $('tb').innerHTML=trs.join('')||'<tr><td colspan="10" class="d">За цю дату звітів не знайдено</td></tr>';
@@ -502,20 +568,10 @@ const plain=()=>{
     ' БК осн.: прих '+r[4]+' / розх '+r[5]+' / зал '+r[6]+'\n'+
     ' БК стр.: прих '+r[7]+' / розх '+r[8]+' / зал '+r[9]).join('\n\n');
 };
-$('copy').onclick=()=>LAST&&toClip([HEAD,...LAST.matrix].map(r=>r.join('\t')).join('\n'),$('copy'));
-$('txt').onclick=()=>LAST&&toClip(plain(),$('txt'));
-if(navigator.share) $('share').hidden=false;
-$('share').onclick=()=>{if(LAST)navigator.share({title:'Зведення '+fmtDate(LAST.date),text:plain()}).catch(()=>{});};
-$('csv').onclick=()=>{
-  if(!LAST)return;
-  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
-  const t='\ufeff'+[HEAD,...LAST.matrix].map(r=>r.map(q).join(';')).join('\r\n');
-  const blob=new Blob([t],{type:'text/csv;charset=utf-8'}),name='zvedennia_'+LAST.date+'.csv';
-  const file=window.File?new File([blob],name,{type:'text/csv'}):null;
-  if(navigator.canShare&&file&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[file]}).catch(()=>{});return;}
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
-};
-$('print').onclick=()=>window.print();
+$('remwa').onclick=()=>{if(!LAST)return;const u='https://wa.me/?text='+encodeURIComponent(LAST.rem);if(!window.open(u,'_blank','noopener'))location.href=u;};
+$('remcopy').onclick=()=>LAST&&toClip(LAST.rem,$('remcopy'));
+if(navigator.share) $('remshare').hidden=false;
+$('remshare').onclick=()=>{if(LAST)navigator.share({text:LAST.rem}).catch(()=>{});};
 
 /* ===== PWA ===== */
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
